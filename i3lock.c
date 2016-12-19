@@ -91,6 +91,7 @@ int blur_radius = 0;
 float blur_sigma = 0;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
+char *exec_fail = NULL;
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
@@ -336,6 +337,10 @@ static void input_done(void) {
     if (beep) {
         xcb_bell(conn, 100);
         xcb_flush(conn);
+    }
+    /* exec fail command on input failure */
+    if (exec_fail) {
+        system(exec_fail);
     }
 }
 
@@ -888,6 +893,7 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"on-exec-fail", required_argument, NULL, 'o'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -895,7 +901,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:tfr:s:eI:l";
+    char *optstring = "hvnbdc:p:ui:tfr:s:eI:lo:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -970,6 +976,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'l':
                 show_failed_attempts = true;
+                break;
+            case 'o':
+                exec_fail = strdup(optarg);
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c "
